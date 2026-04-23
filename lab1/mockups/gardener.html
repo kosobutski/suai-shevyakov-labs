@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Теплица — интерфейс садовода</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; margin: 0; background: #f0f4ef; color: #1a2e1a; }
+    header { background: #2d6a4f; color: #fff; padding: 1rem 1.5rem; }
+    main { max-width: 720px; margin: 1rem auto; padding: 0 1rem; }
+    .panel { background: #fff; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .panel h2 { margin: 0 0 0.75rem; font-size: 1.1rem; color: #2d6a4f; }
+    .zones { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; }
+    .metric { background: #e8f5e9; padding: 0.75rem; border-radius: 8px; text-align: center; }
+    .metric .val { font-size: 1.5rem; font-weight: 700; }
+    .metric .lbl { font-size: 0.8rem; opacity: 0.85; }
+    .actions label { display: block; margin: 0.5rem 0 0.25rem; font-size: 0.9rem; }
+    .actions button { padding: 0.5rem 1rem; border: none; border-radius: 8px; background: #40916c; color: #fff; cursor: pointer; margin-right: 0.5rem; margin-top: 0.5rem; }
+    .note { font-size: 0.85rem; color: #555; margin-top: 1rem; padding: 0.75rem; background: #fffde7; border-radius: 8px; border-left: 4px solid #fbc02d; }
+    .hidden-admin { text-decoration: line-through; opacity: 0.45; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Умная теплица</h1>
+    <p>Режим садовода: мониторинг и простое управление поливом</p>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>Область A — текущий микроклимат (только чтение)</h2>
+      <p>Температура и влажность воздуха по зонам; без доступа к логам БД.</p>
+      <div class="zones">
+        <div class="metric"><div class="val">22 °C</div><div class="lbl">Зона A, T</div></div>
+        <div class="metric"><div class="val">54 %</div><div class="lbl">Зона A, RH</div></div>
+        <div class="metric"><div class="val">41 %</div><div class="lbl">Почва, влага</div></div>
+      </div>
+    </section>
+    <section class="panel actions">
+      <h2>Область B — управление поливом (ограниченно)</h2>
+      <p>Кнопки «Полить 5 мин» / «Стоп»; без настройки порогов автоматики и без журнала команд.</p>
+      <button type="button">Полить 5 мин</button>
+      <button type="button">Стоп полива</button>
+    </section>
+    <section class="panel">
+      <h2>Область C — скрыто от садовода (пояснение для отчёта)</h2>
+      <p class="hidden-admin">Пороги включения насоса, расписание, IP-адреса контроллеров, экспорт CSV, журнал ошибок.</p>
+    </section>
+    <p class="note">
+      <strong>Пояснение для отчёта:</strong> интерфейс садовода показывает агрегированные показатели и только безопасные
+      действия полива. Технические данные и глубокая настройка скрыты, чтобы снизить риск ошибочных команд.
+    </p>
+  </main>
+</body>
+</html>

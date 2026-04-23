@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ЛР2 — Умная теплица (Flask)</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+  <header class="header">
+    <h1>Умная теплица</h1>
+    <p class="subtitle">Лабораторная работа № 2 — Flask и цифровые двойники</p>
+  </header>
+
+  <main class="layout">
+    <section class="card">
+      <h2>Атрибуты вещей (после вызова методов на сервере)</h2>
+      <dl class="grid-dl">
+        <dt>Датчик климата <code>{{ climate.name }}</code></dt>
+        <dd>Зона {{ climate.zone_id }} — {{ climate.temperature_c }} °C, влажность {{ climate.humidity_percent }} %</dd>
+
+        <dt>Датчик почвы <code>{{ soil.name }}</code></dt>
+        <dd>Зона {{ soil.zone_id }} — влажность почвы {{ soil.moisture_percent }} %</dd>
+
+        <dt>Клапан <code>{{ valve.device }}</code></dt>
+        <dd>
+          Зона {{ valve.zone }} —
+          {% if valve.is_open %}открыт{% else %}закрыт{% endif %},
+          расход {{ valve.flow_l_per_min }} л/мин
+        </dd>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>Результат <code>GreenhouseCoordinator.snapshot()</code></h2>
+      <pre class="code">{{ snapshot | tojson_ru }}</pre>
+    </section>
+
+    <section class="card">
+      <h2>Команда на клапан <code>dispatch(..., set_valve)</code></h2>
+      <p class="highlight">{{ command_result }}</p>
+    </section>
+
+    <section class="card">
+      <h2>Последняя запись показаний в «БД»</h2>
+      {% if last_batch %}
+      <pre class="code">{{ last_batch | tojson_ru }}</pre>
+      {% else %}
+      <p>Нет данных</p>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2>Последние команды в журнале</h2>
+      {% if last_commands %}
+      <pre class="code">{{ last_commands | tojson_ru }}</pre>
+      {% else %}
+      <p>Журнал пуст</p>
+      {% endif %}
+    </section>
+
+    <p class="hint">При открытии консоли запуска Flask в PyCharm: при каждом обновлении страницы должны будут появляться строки
+      <code>[IoT-сервер] Метод запущен: …</code></p>
+  </main>
+</body>
+</html>

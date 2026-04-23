@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Теплица — панель администратора</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; margin: 0; background: #1b263b; color: #e0e1dd; }
+    header { background: #0d1b2a; padding: 1rem 1.5rem; border-bottom: 1px solid #415a77; }
+    .layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 80px); }
+    nav { background: #1b263b; padding: 1rem; border-right: 1px solid #415a77; }
+    nav a { display: block; color: #778da9; text-decoration: none; padding: 0.4rem 0; font-size: 0.9rem; }
+    nav a:hover { color: #e0e1dd; }
+    .content { padding: 1rem 1.5rem; overflow: auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .card { background: #263447; border-radius: 10px; padding: 1rem; border: 1px solid #415a77; }
+    .card h3 { margin: 0 0 0.75rem; font-size: 1rem; color: #a8dadc; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 0.35rem 0.25rem; border-bottom: 1px solid #415a77; }
+    input, select { width: 100%; padding: 0.4rem; margin: 0.25rem 0 0.5rem; border-radius: 6px; border: 1px solid #415a77; background: #0d1b2a; color: #e0e1dd; }
+    .btn { padding: 0.45rem 0.9rem; border-radius: 6px; border: none; background: #457b9d; color: #fff; cursor: pointer; margin-top: 0.25rem; }
+    .hint { font-size: 0.8rem; color: #778da9; margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Администрирование теплицы</h1>
+    <p>Полный доступ к порогам, устройствам и журналам (в отличие от интерфейса садовода)</p>
+  </header>
+  <div class="layout">
+    <nav>
+      <strong>Разделы</strong>
+      <a href="#devices">Устройства и зоны</a>
+      <a href="#rules">Правила автоматики</a>
+      <a href="#db">Журнал БД / события</a>
+    </nav>
+    <div class="content">
+      <div class="grid">
+        <section class="card" id="devices">
+          <h3>Область A — реестр вещей</h3>
+          <p>Идентификаторы, зоны, прошивка, статус связи (для администратора; садоводу не показывается).</p>
+          <table>
+            <thead><tr><th>Устройство</th><th>Зона</th><th>Статус</th></tr></thead>
+            <tbody>
+              <tr><td>climate-A1</td><td>A</td><td>online</td></tr>
+              <tr><td>soil-A1</td><td>A</td><td>online</td></tr>
+              <tr><td>valve-A</td><td>A</td><td>idle</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section class="card" id="rules">
+          <h3>Область B — пороги и расписание</h3>
+          <label>Порог влажности почвы (%)</label>
+          <input type="number" value="35" min="0" max="100">
+          <label>Макс. длительность полива (мин)</label>
+          <input type="number" value="15">
+          <label>Режим координатора</label>
+          <select><option>auto</option><option>manual</option><option>maintenance</option></select>
+          <button class="btn" type="button">Сохранить правила</button>
+        </section>
+        <section class="card" id="db">
+          <h3>Область C — данные для отчётности</h3>
+          <p>Последние записи таблиц <code>sensor_readings</code>, <code>actuator_commands</code> (экспорт, аудит).</p>
+          <table>
+            <thead><tr><th>Время</th><th>Событие</th></tr></thead>
+            <tbody>
+              <tr><td>12:01:02</td><td>sensor_batch stored</td></tr>
+              <tr><td>12:00:55</td><td>valve set_valve open</td></tr>
+            </tbody>
+          </table>
+          <button class="btn" type="button">Экспорт CSV</button>
+        </section>
+      </div>
+      <p class="hint">
+        <strong>Пояснение для отчёта:</strong> администратор видит полный набор параметров, может менять пороги автоматики
+        и просматривать журнал БД; садовод в своём интерфейсе не имеет к этим областям доступа — снижение операционных рисков.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

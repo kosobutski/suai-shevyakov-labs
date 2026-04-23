@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ЛР3 — Эмуляторы удаленного оборудования</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/lab3.css') }}">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="{{ url_for('static', filename='js/lab3.js') }}"></script>
+</head>
+<body>
+  <header class="header">
+    <h1>Умная теплица</h1>
+    <p>Лабораторная работа № 3 — получение и вывод данных с удаленного оборудования</p>
+  </header>
+
+  <main class="layout">
+    <section class="card">
+      <h2>Датчик климата (<code>/connect/climate</code>)</h2>
+      <div class="metrics">
+        <label>Устройство</label><input id="climate_device" type="text" readonly>
+        <label>Зона</label><input id="climate_zone" type="text" readonly>
+        <label>Температура, °C</label><input id="climate_temperature" type="text" readonly>
+        <label>Влажность воздуха, %</label><input id="climate_humidity" type="text" readonly>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Датчик влажности почвы (<code>/connect/soil</code>)</h2>
+      <div class="metrics">
+        <label>Устройство</label><input id="soil_device" type="text" readonly>
+        <label>Зона</label><input id="soil_zone" type="text" readonly>
+        <label>Влажность почвы, %</label><input id="soil_moisture" type="text" readonly>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Клапан полива (<code>/connect/valve</code>)</h2>
+      <div class="metrics">
+        <label>Устройство</label><input id="valve_device" type="text" readonly>
+        <label>Зона</label><input id="valve_zone" type="text" readonly>
+        <label>Статус</label><input id="valve_state" type="text" readonly>
+        <label>Расход, л/мин</label><input id="valve_flow" type="text" readonly>
+      </div>
+    </section>
+
+    <p class="hint">
+      Каждый блок получает данные собственной AJAX-функцией раз в секунду.
+      В этой лабораторной реализован только мониторинг.
+    </p>
+  </main>
+</body>
+</html>
