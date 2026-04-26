@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ЛР3 — Эмуляторы удаленного оборудования</title>
+  <title>ЛР4 — Управление удаленным оборудованием</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/lab3.css') }}">
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="{{ url_for('static', filename='js/lab3.js') }}"></script>
@@ -11,42 +11,70 @@
 <body>
   <header class="header">
     <h1>Умная теплица</h1>
-    <p>Лабораторная работа № 3 — получение и вывод данных с удаленного оборудования</p>
+    <p>Лабораторная работа № 4 — мониторинг + передача управляющих команд</p>
   </header>
 
   <main class="layout">
+    <!-- Блок мониторинга датчика климата -->
     <section class="card">
-      <h2>Датчик климата (<code>/connect/climate</code>)</h2>
+      <h2>📡 Датчик климата (мониторинг)</h2>
       <div class="metrics">
         <label>Устройство</label><input id="climate_device" type="text" readonly>
         <label>Зона</label><input id="climate_zone" type="text" readonly>
         <label>Температура, °C</label><input id="climate_temperature" type="text" readonly>
         <label>Влажность воздуха, %</label><input id="climate_humidity" type="text" readonly>
       </div>
+      <div class="control-panel">
+        <h3>Управление датчиком</h3>
+        <label>Установить температуру (°C):</label>
+        <input type="number" id="climate_temp_set" step="0.1" placeholder="18.0..30.0">
+        <label>Установить влажность (%):</label>
+        <input type="number" id="climate_hum_set" step="0.1" placeholder="40..85">
+        <button onclick="sendClimateCommand()">Применить</button>
+        <span id="climate_result" class="command-result"></span>
+      </div>
     </section>
 
+    <!-- Блок мониторинга датчика почвы -->
     <section class="card">
-      <h2>Датчик влажности почвы (<code>/connect/soil</code>)</h2>
+      <h2>🌱 Датчик влажности почвы (мониторинг)</h2>
       <div class="metrics">
         <label>Устройство</label><input id="soil_device" type="text" readonly>
         <label>Зона</label><input id="soil_zone" type="text" readonly>
         <label>Влажность почвы, %</label><input id="soil_moisture" type="text" readonly>
       </div>
+      <div class="control-panel">
+        <h3>Управление датчиком</h3>
+        <label>Установить влажность (%):</label>
+        <input type="number" id="soil_moist_set" step="0.1" placeholder="25..75">
+        <button onclick="sendSoilCommand()">Применить</button>
+        <span id="soil_result" class="command-result"></span>
+      </div>
     </section>
 
+    <!-- Блок мониторинга клапана полива -->
     <section class="card">
-      <h2>Клапан полива (<code>/connect/valve</code>)</h2>
+      <h2>💧 Клапан полива (мониторинг)</h2>
       <div class="metrics">
         <label>Устройство</label><input id="valve_device" type="text" readonly>
         <label>Зона</label><input id="valve_zone" type="text" readonly>
         <label>Статус</label><input id="valve_state" type="text" readonly>
         <label>Расход, л/мин</label><input id="valve_flow" type="text" readonly>
       </div>
+      <div class="control-panel">
+        <h3>Управление клапаном</h3>
+        <button onclick="sendValveCommand(true)">Открыть</button>
+        <button onclick="sendValveCommand(false)">Закрыть</button>
+        <label>Установить расход (л/мин):</label>
+        <input type="number" id="valve_flow_set" step="0.1" placeholder="1.5..3.5">
+        <button onclick="sendValveFlowCommand()">Установить расход</button>
+        <span id="valve_result" class="command-result"></span>
+      </div>
     </section>
 
     <p class="hint">
-      Каждый блок получает данные собственной AJAX-функцией раз в секунду.
-      В этой лабораторной реализован только мониторинг.
+      📊 Данные мониторинга обновляются каждую секунду (AJAX).<br>
+      🎮 Управляющие команды отправляются отдельными запросами и сразу меняют состояние устройств.
     </p>
   </main>
 </body>

@@ -1,18 +1,19 @@
 """
-Классы IoT-системы «Умная теплица»
+Классы IoT-системы «Умная теплица» (ЛР4 – команды с задержкой эмуляции 2 секунды)
 """
 
 from __future__ import annotations
 
 import abc
 import random
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 
 def _srv_log(label: str) -> None:
     """Сообщение в лог сервера разработки."""
-    print(f"[IoT-сервер] Метод запущен: {label}")
+    print(f"[IoT-сервер] {label}")
 
 
 class GreenhouseThing(abc.ABC):
@@ -22,14 +23,20 @@ class GreenhouseThing(abc.ABC):
         _srv_log(f"GreenhouseThing.__init__ -- устройство «{name}», зона {zone_id}")
         self.name = name
         self.zone_id = zone_id
+        self._last_command_time = 0.0  # время последней управляющей команды (timestamp)
 
     @abc.abstractmethod
     def read_telemetry(self) -> Dict[str, Any]:
         """Снимок состояния для мониторинга."""
 
     def apply_command(self, command: str, payload: Optional[Dict[str, Any]] = None) -> str:
+        """Базовая реализация – просто логируем неподдерживаемую команду."""
         _srv_log(f"GreenhouseThing.apply_command (базовая реализация) — {self.name}, команда «{command}»")
         return f"{self.name}: команда «{command}» не поддерживается"
+
+    def _is_emulation_frozen(self) -> bool:
+        """Проверяет, прошло ли менее 2 секунд после последней команды."""
+        return (time.time() - self._last_command_time) < 2.0
 
 
 class ClimateSensor(GreenhouseThing):
@@ -51,14 +58,30 @@ class ClimateSensor(GreenhouseThing):
         }
 
     def emulate(self) -> None:
+        """Эмуляция изменения показаний. Если заморожена – не меняем."""
+        if self._is_emulation_frozen():
+            _srv_log(f"ClimateSensor.emulate — {self.name} (пропущено, заморозка на 2 сек)")
+            return
         _srv_log(f"ClimateSensor.emulate — {self.name}")
         self.temperature_c = round(random.uniform(18.0, 30.0), 1)
         self.humidity_percent = round(random.uniform(40.0, 85.0), 1)
 
     def connect(self) -> Dict[str, Any]:
         _srv_log(f"ClimateSensor.connect — {self.name}")
-        self.emulate()
+        self.emulate()   # эмулируем, но внутри emulate есть проверка заморозки
         return self.read_telemetry()
+
+    def apply_command(self, command: str, payload: Optional[Dict[str, Any]] = None) -> str:
+        _srv_log(f"ClimateSensor.apply_command — {self.name}, «{command}»")
+        payload = payload or {}
+        if command == "set":
+            self._last_command_time = time.time()   # фиксируем время команды
+            if "temperature_c" in payload:
+                self.temperature_c = float(payload["temperature_c"])
+            if "humidity_percent" in payload:
+                self.humidity_percent = float(payload["humidity_percent"])
+            return f"{self.name}: значения установлены (T={self.temperature_c}°C, H={self.humidity_percent}%)"
+        return super().apply_command(command, payload)
 
 
 class SoilMoistureSensor(GreenhouseThing):
@@ -78,6 +101,9 @@ class SoilMoistureSensor(GreenhouseThing):
         }
 
     def emulate(self) -> None:
+        if self._is_emulation_frozen():
+            _srv_log(f"SoilMoistureSensor.emulate — {self.name} (пропущено, заморозка на 2 сек)")
+            return
         _srv_log(f"SoilMoistureSensor.emulate — {self.name}")
         self.moisture_percent = round(random.uniform(25.0, 75.0), 1)
 
@@ -85,6 +111,16 @@ class SoilMoistureSensor(GreenhouseThing):
         _srv_log(f"SoilMoistureSensor.connect — {self.name}")
         self.emulate()
         return self.read_telemetry()
+
+    def apply_command(self, command: str, payload: Optional[Dict[str, Any]] = None) -> str:
+        _srv_log(f"SoilMoistureSensor.apply_command — {self.name}, «{command}»")
+        payload = payload or {}
+        if command == "set":
+            self._last_command_time = time.time()
+            if "moisture_percent" in payload:
+                self.moisture_percent = float(payload["moisture_percent"])
+            return f"{self.name}: влажность почвы установлена на {self.moisture_percent}%"
+        return super().apply_command(command, payload)
 
 
 class IrrigationValve(GreenhouseThing):
@@ -106,6 +142,9 @@ class IrrigationValve(GreenhouseThing):
         }
 
     def emulate(self) -> None:
+        if self._is_emulation_frozen():
+            _srv_log(f"IrrigationValve.emulate — {self.name} (пропущено, заморозка на 2 сек)")
+            return
         _srv_log(f"IrrigationValve.emulate — {self.name}")
         self.is_open = random.choice([True, False])
         self.flow_l_per_min = round(random.uniform(1.5, 3.5), 1) if self.is_open else 0.0
@@ -119,6 +158,7 @@ class IrrigationValve(GreenhouseThing):
         _srv_log(f"IrrigationValve.apply_command — {self.name}, «{command}»")
         payload = payload or {}
         if command == "set_valve":
+            self._last_command_time = time.time()
             self.is_open = bool(payload.get("open", False))
             self.flow_l_per_min = float(payload.get("flow_l_per_min", 2.5 if self.is_open else 0.0))
             return f"{self.name}: клапан {'открыт' if self.is_open else 'закрыт'}"

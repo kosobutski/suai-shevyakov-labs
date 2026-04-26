@@ -9,6 +9,7 @@ body {
   color: #1a2f1a;
 }
 
+/* Шапка – без изменений */
 .header {
   background: #2d6a4f;
   color: #fff;
@@ -25,12 +26,14 @@ body {
   opacity: 0.95;
 }
 
+/* Основная сетка – без изменений */
 .layout {
   max-width: 840px;
   margin: 1rem auto;
   padding: 0 1rem 1.5rem;
 }
 
+/* Карточки – без изменений */
 .card {
   background: #fff;
   border-radius: 10px;
@@ -45,6 +48,7 @@ body {
   font-size: 1.05rem;
 }
 
+/* Сетка показаний мониторинга – без изменений */
 .metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -62,8 +66,10 @@ body {
   border: 1px solid #cfd8dc;
   border-radius: 6px;
   background: #eef2f3;
+  font-size: 0.9rem;
 }
 
+/* Подсказка – без изменений */
 .hint {
   background: #fffde7;
   border-left: 4px solid #f9a825;
@@ -71,4 +77,66 @@ body {
   padding: 0.8rem 0.9rem;
   margin: 0;
   color: #616161;
+}
+
+.control-panel {
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e7e6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.8rem;
+}
+
+.control-panel h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+  color: #1e4a3b;
+  width: 100%;
+  flex-basis: 100%;
+  margin-bottom: 0.2rem;
+}
+
+.control-panel label {
+  font-size: 0.85rem;
+  color: #2d6a4f;
+  margin-right: 0.2rem;
+}
+
+.control-panel input {
+  width: 100px;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #bdc9cc;
+  border-radius: 5px;
+  background: #ffffff;
+  font-size: 0.85rem;
+}
+
+.control-panel button {
+  background: #2d6a4f;
+  border: none;
+  color: white;
+  padding: 0.3rem 0.9rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.2s;
+  margin-left: 0.2rem;
+}
+
+.control-panel button:hover {
+  background: #1b4d3e;
+}
+
+.command-result {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: normal;
+  color: #2d6a4f;
+  background: #eef2f3;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  display: inline-block;
 }
