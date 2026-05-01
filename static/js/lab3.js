@@ -1,11 +1,9 @@
-// ========== Функции мониторинга (из ЛР3, не изменены) ==========
+// ========== Мониторинг (ЛР3) ==========
 function getClimateData() {
   $.ajax({
     type: "GET",
     url: "/connect/climate",
     dataType: "json",
-    contentType: "application/json",
-    data: {},
     success: function (response) {
       $("#climate_device").val(response.device);
       $("#climate_zone").val(response.zone);
@@ -20,8 +18,6 @@ function getSoilData() {
     type: "GET",
     url: "/connect/soil",
     dataType: "json",
-    contentType: "application/json",
-    data: {},
     success: function (response) {
       $("#soil_device").val(response.device);
       $("#soil_zone").val(response.zone);
@@ -35,13 +31,15 @@ function getValveData() {
     type: "GET",
     url: "/connect/valve",
     dataType: "json",
-    contentType: "application/json",
-    data: {},
     success: function (response) {
       $("#valve_device").val(response.device);
       $("#valve_zone").val(response.zone);
       $("#valve_state").val(response.is_open ? "Открыт" : "Закрыт");
       $("#valve_flow").val(response.flow_l_per_min);
+      $("#valve_auto_mode").val(response.auto_mode ? "Включён" : "Выключен");
+      $("#valve_threshold").val(response.moisture_threshold);
+      $("#auto_mode_btn").text(response.auto_mode ? "Выключить" : "Включить");
+      $("#threshold_set").val(response.moisture_threshold);
     }
   });
 }
@@ -52,7 +50,7 @@ function updateAll() {
   getValveData();
 }
 
-
+// ========== Ручные команды (ЛР4, ЛР5) ==========
 function sendClimateCommand() {
   let temp = $("#climate_temp_set").val();
   let hum = $("#climate_hum_set").val();
@@ -60,7 +58,7 @@ function sendClimateCommand() {
   if (temp !== "") params.temperature_c = temp;
   if (hum !== "") params.humidity_percent = hum;
   if (Object.keys(params).length === 0) {
-    $("#climate_result").text("Ошибка: введите хотя бы один параметр").css("color", "red");
+    $("#climate_result").text("Ошибка: введите параметры").css("color", "red");
     return;
   }
   $.ajax({
@@ -69,12 +67,8 @@ function sendClimateCommand() {
     data: params,
     dataType: "json",
     success: function (resp) {
-      if (resp.status === "ok") {
-        $("#climate_result").text("✓ " + resp.result).css("color", "green");
-        updateAll();  // обновляем мониторинг
-      } else {
-        $("#climate_result").text("Ошибка: " + JSON.stringify(resp)).css("color", "red");
-      }
+      $("#climate_result").text("✓ " + resp.result).css("color", "green");
+      updateAll();
     },
     error: function () {
       $("#climate_result").text("Ошибка соединения").css("color", "red");
@@ -94,15 +88,8 @@ function sendSoilCommand() {
     data: { moisture_percent: moisture },
     dataType: "json",
     success: function (resp) {
-      if (resp.status === "ok") {
-        $("#soil_result").text("✓ " + resp.result).css("color", "green");
-        updateAll();
-      } else {
-        $("#soil_result").text("Ошибка: " + JSON.stringify(resp)).css("color", "red");
-      }
-    },
-    error: function () {
-      $("#soil_result").text("Ошибка соединения").css("color", "red");
+      $("#soil_result").text("✓ " + resp.result).css("color", "green");
+      updateAll();
     }
   });
 }
@@ -114,15 +101,8 @@ function sendValveCommand(open) {
     data: { open: open },
     dataType: "json",
     success: function (resp) {
-      if (resp.status === "ok") {
-        $("#valve_result").text("✓ " + resp.result).css("color", "green");
-        updateAll();
-      } else {
-        $("#valve_result").text("Ошибка: " + JSON.stringify(resp)).css("color", "red");
-      }
-    },
-    error: function () {
-      $("#valve_result").text("Ошибка соединения").css("color", "red");
+      $("#valve_result").text("✓ " + resp.result).css("color", "green");
+      updateAll();
     }
   });
 }
@@ -139,20 +119,49 @@ function sendValveFlowCommand() {
     data: { flow_l_per_min: flow },
     dataType: "json",
     success: function (resp) {
-      if (resp.status === "ok") {
-        $("#valve_result").text("✓ " + resp.result).css("color", "green");
-        updateAll();
-      } else {
-        $("#valve_result").text("Ошибка: " + JSON.stringify(resp)).css("color", "red");
-      }
-    },
-    error: function () {
-      $("#valve_result").text("Ошибка соединения").css("color", "red");
+      $("#valve_result").text("✓ " + resp.result).css("color", "green");
+      updateAll();
     }
   });
 }
 
-// Запуск автоматического обновления мониторинга (как в ЛР3)
+// ========== Автоматический режим (ЛР6) ==========
+function toggleAutoMode() {
+  let currentAuto = $("#valve_auto_mode").val() === "Включён";
+  let newMode = !currentAuto;
+  $.ajax({
+    type: "GET",
+    url: "/control/valve",
+    data: { auto_mode: newMode },
+    dataType: "json",
+    success: function (resp) {
+      $("#auto_result").text("✓ " + resp.result).css("color", "green");
+      updateAll();
+    },
+    error: function () {
+      $("#auto_result").text("Ошибка").css("color", "red");
+    }
+  });
+}
+
+function setThreshold() {
+  let threshold = $("#threshold_set").val();
+  if (threshold === "") {
+    $("#auto_result").text("Ошибка: введите порог").css("color", "red");
+    return;
+  }
+  $.ajax({
+    type: "GET",
+    url: "/control/valve",
+    data: { moisture_threshold: threshold },
+    dataType: "json",
+    success: function (resp) {
+      $("#auto_result").text("✓ " + resp.result).css("color", "green");
+      updateAll();
+    }
+  });
+}
+
 $(function () {
   updateAll();
   setInterval(updateAll, 1000);

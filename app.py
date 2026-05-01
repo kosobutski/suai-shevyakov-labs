@@ -1,12 +1,6 @@
-"""
-Адрес в браузере: http://127.0.0.1:5000/
-Лабораторная работа №4 – добавлены управляющие команды
-"""
-
 from __future__ import annotations
 
 import json
-
 from flask import Flask, jsonify, render_template, request
 from markupsafe import Markup
 
@@ -19,6 +13,7 @@ app = Flask(__name__)
 def tojson_ru(value: object) -> Markup:
     return Markup(json.dumps(value, ensure_ascii=False, indent=2))
 
+
 _db = things.GreenhouseDatabase()
 _climate = things.ClimateSensor("climate-A1", "A", temperature_c=21.3, humidity_percent=58.0)
 _soil = things.SoilMoistureSensor("soil-A1", "A", moisture_percent=38.0)
@@ -30,32 +25,7 @@ _hub = things.GreenhouseCoordinator(
 )
 
 
-@app.route("/lab3")
-def lab2_index():
-    # (оставлен как в ЛР3 для демонстрации, но не используется в ЛР4)
-    app.logger.info("Маршрут GET /lab3 — демонстрация вызовов методов классов")
-    snapshot = _hub.snapshot()
-    command_result = _hub.dispatch("valve-A", "set_valve", {"open": True, "flow_l_per_min": 2.0})
-    valve_view = _valve.read_telemetry()
-    return render_template(
-        "index.html",
-        climate=_climate,
-        soil=_soil,
-        valve=valve_view,
-        snapshot=snapshot,
-        command_result=command_result,
-        last_batch=_db.last_sensor_batch(),
-        last_commands=_db.command_history()[-3:],
-    )
-
-
-@app.route("/")
-def lab3_index():
-    """Интерфейс ЛР №4: мониторинг + управление."""
-    app.logger.info("Маршрут GET / — интерфейс лабораторной работы №4")
-    return render_template("lab3_emulator.html")
-
-
+# ---------- Мониторинг (ЛР3) ----------
 @app.route("/connect/climate")
 def connect_climate():
     app.logger.info("GET /connect/climate")
@@ -65,7 +35,9 @@ def connect_climate():
 @app.route("/connect/soil")
 def connect_soil():
     app.logger.info("GET /connect/soil")
-    return jsonify(_soil.connect())
+    data = _soil.connect()
+    _valve.auto_control(_soil.moisture_percent)
+    return jsonify(data)
 
 
 @app.route("/connect/valve")
@@ -74,50 +46,57 @@ def connect_valve():
     return jsonify(_valve.connect())
 
 
-# ---------- Маршруты управления (НОВЫЕ для ЛР4) ----------
+# ---------- Управление (ЛР4, ЛР5, ЛР6) ----------
 @app.route("/control/climate")
 def control_climate():
-    """Управление датчиком климата: установка температуры и/или влажности."""
-    temp = request.args.get("temperature_c", type=float)
-    hum = request.args.get("humidity_percent", type=float)
     payload = {}
-    if temp is not None:
-        payload["temperature_c"] = temp
-    if hum is not None:
-        payload["humidity_percent"] = hum
-    if not payload:
-        return jsonify({"error": "Не передано ни одного параметра"}), 400
+    if 'temperature_c' in request.args:
+        payload['temperature_c'] = request.args.get('temperature_c')
+    if 'humidity_percent' in request.args:
+        payload['humidity_percent'] = request.args.get('humidity_percent')
+    if 'unit' in request.args:
+        payload['unit'] = request.args.get('unit')
     result = _climate.apply_command("set", payload)
-    app.logger.info(f"Управление климатом: {result}")
     return jsonify({"status": "ok", "result": result, "new_telemetry": _climate.read_telemetry()})
 
 
 @app.route("/control/soil")
 def control_soil():
-    """Управление датчиком почвы: установка влажности."""
-    moisture = request.args.get("moisture_percent", type=float)
-    if moisture is None:
-        return jsonify({"error": "Не указан параметр moisture_percent"}), 400
-    result = _soil.apply_command("set", {"moisture_percent": moisture})
-    app.logger.info(f"Управление почвой: {result}")
+    payload = {}
+    if 'moisture_percent' in request.args:
+        payload['moisture_percent'] = request.args.get('moisture_percent')
+    if 'mode' in request.args:
+        payload['mode'] = request.args.get('mode')
+    result = _soil.apply_command("set", payload)
     return jsonify({"status": "ok", "result": result, "new_telemetry": _soil.read_telemetry()})
 
 
 @app.route("/control/valve")
 def control_valve():
-    """Управление клапаном: открыть/закрыть, установить расход."""
-    open_valve = request.args.get("open", type=lambda v: v.lower() == "true")
-    flow = request.args.get("flow_l_per_min", type=float)
     payload = {}
-    if open_valve is not None:
-        payload["open"] = open_valve
-    if flow is not None:
-        payload["flow_l_per_min"] = flow
-    if not payload:
-        return jsonify({"error": "Не передано ни одной команды"}), 400
-    result = _valve.apply_command("set_valve", payload)
-    app.logger.info(f"Управление клапаном: {result}")
-    return jsonify({"status": "ok", "result": result, "new_telemetry": _valve.read_telemetry()})
+    if 'open' in request.args:
+        payload['open'] = request.args.get('open')
+    if 'flow_l_per_min' in request.args:
+        payload['flow_l_per_min'] = request.args.get('flow_l_per_min')
+    if payload:
+        result = _valve.apply_command("set_valve", payload)
+        return jsonify({"status": "ok", "result": result, "new_telemetry": _valve.read_telemetry()})
+
+    auto_payload = {}
+    if 'auto_mode' in request.args:
+        auto_payload['auto_mode'] = request.args.get('auto_mode')
+    if 'moisture_threshold' in request.args:
+        auto_payload['moisture_threshold'] = request.args.get('moisture_threshold')
+    if auto_payload:
+        result = _valve.apply_command("set_auto", auto_payload)
+        return jsonify({"status": "ok", "result": result, "new_telemetry": _valve.read_telemetry()})
+
+    return jsonify({"status": "error", "result": "Нет команд"})
+
+
+@app.route("/")
+def index():
+    return render_template("lab3_emulator.html")
 
 
 if __name__ == "__main__":
