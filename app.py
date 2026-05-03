@@ -23,13 +23,16 @@ _hub = things.GreenhouseCoordinator(
     actuators=[_valve],
     database=_db,
 )
+_logger = things.Logger("IOT_logger_db")
 
 
 # ---------- Мониторинг (ЛР3) ----------
 @app.route("/connect/climate")
 def connect_climate():
     app.logger.info("GET /connect/climate")
-    return jsonify(_climate.connect())
+    data = _climate.connect()
+    _logger.insert_climate_reading(data)
+    return jsonify(data)
 
 
 @app.route("/connect/soil")
@@ -37,13 +40,17 @@ def connect_soil():
     app.logger.info("GET /connect/soil")
     data = _soil.connect()
     _valve.auto_control(_soil.moisture_percent)
+    _logger.insert_soil_reading(data)
+    _logger.insert_valve_state(_valve.read_telemetry())
     return jsonify(data)
 
 
 @app.route("/connect/valve")
 def connect_valve():
     app.logger.info("GET /connect/valve")
-    return jsonify(_valve.connect())
+    data = _valve.connect()
+    _logger.insert_valve_state(data)
+    return jsonify(data)
 
 
 # ---------- Управление (ЛР4, ЛР5, ЛР6) ----------

@@ -1,7 +1,3 @@
-"""
-Классы IoT-системы «Умная теплица» (ЛР6 – автоматическое управление)
-"""
-
 from __future__ import annotations
 
 import abc
@@ -10,6 +6,7 @@ import re
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+import pymongo
 
 
 def _srv_log(label: str) -> None:
@@ -318,6 +315,82 @@ class GreenhouseDatabase:
         return list(self._command_log)
 
 
+class Logger:
+    """
+    ЛР7: логгер долгосрочного хранения в MongoDB.
+    Содержит подключение к БД и последние записанные значения
+    для исключения дублей.
+    """
+
+    def __init__(self, db_name: str, uri: str = "mongodb://localhost:27017/") -> None:
+        _srv_log(f"Logger.__init__ -- DB: {db_name}")
+        self._last_climate: Optional[Dict[str, Any]] = None
+        self._last_soil: Optional[Dict[str, Any]] = None
+        self._last_valve: Optional[Dict[str, Any]] = None
+        self._enabled = True
+        try:
+            self.client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=1500)
+            self.client.admin.command("ping")
+            self.db = self.client[db_name]
+            _srv_log("Logger: MongoDB connection OK")
+        except Exception as exc:
+            self._enabled = False
+            self.client = None
+            self.db = None
+            _srv_log(f"Logger: MongoDB недоступна ({exc})")
+
+    def _insert_if_changed(self, collection: str, payload: Dict[str, Any], last_value: Optional[Dict[str, Any]]) -> Optional[Any]:
+        if payload == last_value:
+            _srv_log(f"Logger.{collection}: значение не изменилось, запись пропущена")
+            return None
+        if not self._enabled or self.db is None:
+            _srv_log(f"Logger.{collection}: MongoDB недоступна, запись пропущена")
+            return None
+        doc = {"timeStamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), **payload}
+        try:
+            return self.db[collection].insert_one(doc)
+        except Exception as exc:
+            _srv_log(f"Logger.{collection}: ошибка записи ({exc})")
+            return None
+
+    def insert_climate_reading(self, data: Dict[str, Any]) -> Optional[Any]:
+        payload = {
+            "device": data.get("device"),
+            "zone": data.get("zone"),
+            "temperature_c": data.get("temperature_c"),
+            "humidity_percent": data.get("humidity_percent"),
+        }
+        result = self._insert_if_changed("ClimateReadings", payload, self._last_climate)
+        if result is not None:
+            self._last_climate = payload
+        return result
+
+    def insert_soil_reading(self, data: Dict[str, Any]) -> Optional[Any]:
+        payload = {
+            "device": data.get("device"),
+            "zone": data.get("zone"),
+            "moisture_percent": data.get("moisture_percent"),
+        }
+        result = self._insert_if_changed("SoilReadings", payload, self._last_soil)
+        if result is not None:
+            self._last_soil = payload
+        return result
+
+    def insert_valve_state(self, data: Dict[str, Any]) -> Optional[Any]:
+        payload = {
+            "device": data.get("device"),
+            "zone": data.get("zone"),
+            "is_open": data.get("is_open"),
+            "flow_l_per_min": data.get("flow_l_per_min"),
+            "auto_mode": data.get("auto_mode"),
+            "moisture_threshold": data.get("moisture_threshold"),
+        }
+        result = self._insert_if_changed("ValveStates", payload, self._last_valve)
+        if result is not None:
+            self._last_valve = payload
+        return result
+
+
 __all__ = [
     "GreenhouseThing",
     "ClimateSensor",
@@ -325,4 +398,5 @@ __all__ = [
     "IrrigationValve",
     "GreenhouseCoordinator",
     "GreenhouseDatabase",
+    "Logger",
 ]
