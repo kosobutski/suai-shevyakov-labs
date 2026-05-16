@@ -1,3 +1,100 @@
+let climateChart = null;
+
+function loadChart() {
+  $.ajax({
+    type: "GET",
+    url: "/api/climate-data?limit=30",
+    dataType: "json",
+    success: function (data) {
+      const labels = data.labels;
+      const temperatures = data.temperatures;
+      const humidities = data.humidities;
+
+      // Если график уже существует, обновим данные
+      if (climateChart) {
+        climateChart.data.labels = labels;
+        climateChart.data.datasets[0].data = temperatures;
+        climateChart.data.datasets[1].data = humidities;
+        climateChart.update();
+      } else {
+        // Создаём новый график
+        const ctx = document.getElementById('climateChart').getContext('2d');
+        climateChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Температура (°C)',
+                data: temperatures,
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 3,
+                pointHoverRadius: 5
+              },
+              {
+                label: 'Влажность (%)',
+                data: humidities,
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 3,
+                pointHoverRadius: 5
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: 'top',
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false
+              }
+            },
+            scales: {
+              y: {
+                title: {
+                  display: true,
+                  text: 'Значения'
+                },
+                min: 0,
+                max: 100
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: 'Время измерения'
+                },
+                ticks: {
+                  maxRotation: 45,
+                  minRotation: 45,
+                  autoSkip: true,
+                  maxTicksLimit: 10
+                }
+              }
+            },
+            interaction: {
+              mode: 'nearest',
+              axis: 'x',
+              intersect: false
+            }
+          }
+        });
+      }
+    },
+    error: function (xhr, status, error) {
+      console.error("Ошибка загрузки данных для графика:", error);
+    }
+  });
+}
+
 function getClimateData() {
   $.ajax({
     type: "GET",
@@ -187,4 +284,6 @@ $(function () {
   setInterval(updateAll, 1000);
   loadStats();
   setInterval(loadStats, 30000);
+  loadChart(); // первая загрузка графика
+  setInterval(loadChart, 60000); // обновление графика раз в минуту (чтобы не нагружать БД)
 });

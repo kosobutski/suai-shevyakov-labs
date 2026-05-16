@@ -26,7 +26,6 @@ _hub = things.GreenhouseCoordinator(
 _logger = things.Logger("IOT_logger_db")
 
 
-
 # ---------- Мониторинг (ЛР3) с логированием в MongoDB ----------
 @app.route("/connect/climate")
 def connect_climate():
@@ -102,18 +101,38 @@ def control_valve():
     return jsonify({"status": "error", "result": "Нет команд"})
 
 
+# ---------- Статистика (ЛР8) ----------
 @app.route("/stats/climate")
 def stats_climate():
-    """Возвращает статистику по климату (средняя и максимальная температура/влажность)."""
     stats = _logger.get_climate_stats()
     return jsonify(stats)
 
 
 @app.route("/stats/soil")
 def stats_soil():
-    """Возвращает статистику по почве (средняя и минимальная влажность)."""
     stats = _logger.get_soil_stats()
     return jsonify(stats)
+
+@app.route("/api/climate-data")
+def climate_data():
+    """Возвращает последние N записей температуры и влажности для построения графика."""
+    limit = request.args.get('limit', default=30, type=int)
+    if not _logger._enabled or _logger.db is None:
+        return jsonify({"error": "MongoDB недоступна"}), 500
+
+    collection = _logger.db["ClimateReadings"]
+    cursor = collection.find({}, {"_id": 0, "timeStamp": 1, "temperature_c": 1, "humidity_percent": 1}).sort("timeStamp", 1).limit(limit)
+    data = list(cursor)
+
+    labels = [item.get("timeStamp", "") for item in data]
+    temperatures = [item.get("temperature_c") for item in data if item.get("temperature_c") is not None]
+    humidities = [item.get("humidity_percent") for item in data if item.get("humidity_percent") is not None]
+
+    return jsonify({
+        "labels": labels,
+        "temperatures": temperatures,
+        "humidities": humidities
+    })
 
 
 # ---------- Главная страница ----------

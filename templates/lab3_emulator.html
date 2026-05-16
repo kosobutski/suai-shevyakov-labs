@@ -3,15 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ЛР6 — Умная теплица (автоматика)</title>
+  <title>ЛР9 — Умная теплица (визуализация)</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/lab3.css') }}">
+  <!-- Подключаем Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="{{ url_for('static', filename='js/lab3.js') }}"></script>
 </head>
 <body>
   <header class="header">
     <h1>Умная теплица</h1>
-    <p>Лабораторная работа № 6 — автоматическое управление поливом</p>
+    <p>Лабораторная работа №9 — визуализация данных (графики)</p>
   </header>
 
   <main class="layout">
@@ -77,6 +79,8 @@
         <p class="hint" style="margin-top:8px;">При включённом авторежиме клапан автоматически управляется датчиком влажности почвы (открывается, если влажность ниже порога).</p>
       </div>
     </section>
+
+    <!-- Аналитика (ЛР8) -->
     <section class="card">
       <h2>📊 Аналитика по климату (за всё время)</h2>
       <div class="metrics">
@@ -94,6 +98,13 @@
         <label>Мин. влажность:</label><span id="min_moisture" class="stat-value">—</span>
       </div>
     </section>
+
+    <section class="card">
+      <h2>📈 График температуры и влажности (последние 30 измерений)</h2>
+      <canvas id="climateChart" width="800" height="400" style="max-width:100%; height:auto;"></canvas>
+      <p class="hint" style="margin-top:8px;">График обновляется при загрузке страницы и показывает динамику изменения параметров.</p>
+    </section>
+
   </main>
 </body>
 </html>
