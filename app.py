@@ -26,7 +26,8 @@ _hub = things.GreenhouseCoordinator(
 _logger = things.Logger("IOT_logger_db")
 
 
-# ---------- Мониторинг (ЛР3) ----------
+
+# ---------- Мониторинг (ЛР3) с логированием в MongoDB ----------
 @app.route("/connect/climate")
 def connect_climate():
     app.logger.info("GET /connect/climate")
@@ -53,7 +54,7 @@ def connect_valve():
     return jsonify(data)
 
 
-# ---------- Управление (ЛР4, ЛР5, ЛР6) ----------
+# ---------- Управление устройствами (ЛР4, ЛР5, ЛР6) ----------
 @app.route("/control/climate")
 def control_climate():
     payload = {}
@@ -101,6 +102,21 @@ def control_valve():
     return jsonify({"status": "error", "result": "Нет команд"})
 
 
+@app.route("/stats/climate")
+def stats_climate():
+    """Возвращает статистику по климату (средняя и максимальная температура/влажность)."""
+    stats = _logger.get_climate_stats()
+    return jsonify(stats)
+
+
+@app.route("/stats/soil")
+def stats_soil():
+    """Возвращает статистику по почве (средняя и минимальная влажность)."""
+    stats = _logger.get_soil_stats()
+    return jsonify(stats)
+
+
+# ---------- Главная страница ----------
 @app.route("/")
 def index():
     return render_template("lab3_emulator.html")

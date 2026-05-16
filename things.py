@@ -1,3 +1,8 @@
+"""
+Классы IoT-системы «Умная теплица»
+Лабораторные работы №3–8.
+"""
+
 from __future__ import annotations
 
 import abc
@@ -6,6 +11,7 @@ import re
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+
 import pymongo
 
 
@@ -13,6 +19,7 @@ def _srv_log(label: str) -> None:
     print(f"[IoT-сервер] {label}")
 
 
+# ---------- Базовый класс ----------
 class GreenhouseThing(abc.ABC):
     def __init__(self, name: str, zone_id: str) -> None:
         _srv_log(f"GreenhouseThing.__init__ -- {name}, зона {zone_id}")
@@ -32,6 +39,7 @@ class GreenhouseThing(abc.ABC):
         return (time.time() - self._last_command_time) < 2.0
 
 
+# ---------- Датчик климата ----------
 class ClimateSensor(GreenhouseThing):
     def __init__(self, name: str, zone_id: str, temperature_c: float = 22.0, humidity_percent: float = 55.0) -> None:
         _srv_log("ClimateSensor.__init__")
@@ -49,7 +57,7 @@ class ClimateSensor(GreenhouseThing):
 
     def emulate(self) -> None:
         if self._is_emulation_frozen():
-            _srv_log(f"ClimateSensor.emulate — {self.name} (пропущено)")
+            _srv_log(f"ClimateSensor.emulate — {self.name} (пропущено, заморозка)")
             return
         self.temperature_c = round(random.uniform(18.0, 30.0), 1)
         self.humidity_percent = round(random.uniform(40.0, 85.0), 1)
@@ -66,6 +74,7 @@ class ClimateSensor(GreenhouseThing):
         payload = payload or {}
         self._last_command_time = time.time()
         errors = []
+
         if "temperature_c" in payload:
             try:
                 temp = float(payload["temperature_c"])
@@ -75,6 +84,7 @@ class ClimateSensor(GreenhouseThing):
                     self.temperature_c = temp
             except (ValueError, TypeError):
                 errors.append(f"Некорректная температура: {payload['temperature_c']}")
+
         if "humidity_percent" in payload:
             try:
                 hum = float(payload["humidity_percent"])
@@ -84,17 +94,20 @@ class ClimateSensor(GreenhouseThing):
                     self.humidity_percent = hum
             except (ValueError, TypeError):
                 errors.append(f"Некорректная влажность: {payload['humidity_percent']}")
+
         if "unit" in payload:
             unit_str = str(payload["unit"])
             if not re.fullmatch(r"^(celsius|fahrenheit)$", unit_str, re.IGNORECASE):
                 errors.append(f"Недопустимая единица: {unit_str}")
             else:
                 _srv_log(f"Единица измерения: {unit_str}")
+
         if errors:
             return f"{self.name}: ошибка валидации: {'; '.join(errors)}"
         return f"{self.name}: T={self.temperature_c}°C, H={self.humidity_percent}%"
 
 
+# ---------- Датчик влажности почвы ----------
 class SoilMoistureSensor(GreenhouseThing):
     def __init__(self, name: str, zone_id: str, moisture_percent: float = 40.0) -> None:
         _srv_log("SoilMoistureSensor.__init__")
@@ -110,7 +123,7 @@ class SoilMoistureSensor(GreenhouseThing):
 
     def emulate(self) -> None:
         if self._is_emulation_frozen():
-            _srv_log(f"SoilMoistureSensor.emulate — {self.name} (пропущено)")
+            _srv_log(f"SoilMoistureSensor.emulate — {self.name} (пропущено, заморозка)")
             return
         self.moisture_percent = round(random.uniform(25.0, 75.0), 1)
 
@@ -126,6 +139,7 @@ class SoilMoistureSensor(GreenhouseThing):
         payload = payload or {}
         self._last_command_time = time.time()
         errors = []
+
         if "moisture_percent" in payload:
             try:
                 moist = float(payload["moisture_percent"])
@@ -135,18 +149,19 @@ class SoilMoistureSensor(GreenhouseThing):
                     self.moisture_percent = moist
             except (ValueError, TypeError):
                 errors.append(f"Некорректная влажность: {payload['moisture_percent']}")
+
         if "mode" in payload:
             mode_str = str(payload["mode"])
             if not re.fullmatch(r"^(auto|manual|off)$", mode_str, re.IGNORECASE):
                 errors.append(f"Недопустимый режим: {mode_str}")
+
         if errors:
             return f"{self.name}: ошибка валидации: {'; '.join(errors)}"
         return f"{self.name}: влажность = {self.moisture_percent}%"
 
 
+# ---------- Клапан полива с автоматикой ----------
 class IrrigationValve(GreenhouseThing):
-    """Клапан полива с автоматическим режимом"""
-
     def __init__(self, name: str, zone_id: str, is_open: bool = False, flow_l_per_min: float = 0.0) -> None:
         _srv_log("IrrigationValve.__init__")
         super().__init__(name, zone_id)
@@ -167,7 +182,7 @@ class IrrigationValve(GreenhouseThing):
 
     def emulate(self) -> None:
         if self._is_emulation_frozen():
-            _srv_log(f"IrrigationValve.emulate — {self.name} (пропущено)")
+            _srv_log(f"IrrigationValve.emulate — {self.name} (пропущено, заморозка)")
             return
         if not self.auto_mode:
             self.is_open = random.choice([True, False])
@@ -191,7 +206,8 @@ class IrrigationValve(GreenhouseThing):
             self.is_open = False
             self.flow_l_per_min = 0.0
         if was_open != self.is_open:
-            _srv_log(f"Автоуправление: влажность {moisture}% {'<' if moisture < self.moisture_threshold else '>='} порог {self.moisture_threshold}% → клапан {'открыт' if self.is_open else 'закрыт'}")
+            _srv_log(
+                f"Автоуправление: влажность {moisture}% {'<' if moisture < self.moisture_threshold else '>='} порог {self.moisture_threshold}% → клапан {'открыт' if self.is_open else 'закрыт'}")
 
     def apply_command(self, command: str, payload: Optional[Dict[str, Any]] = None) -> str:
         _srv_log(f"IrrigationValve.apply_command — {self.name}, «{command}»")
@@ -199,6 +215,7 @@ class IrrigationValve(GreenhouseThing):
             payload = payload or {}
             self._last_command_time = time.time()
             errors = []
+
             if "open" in payload:
                 open_val = payload["open"]
                 if isinstance(open_val, str):
@@ -212,9 +229,10 @@ class IrrigationValve(GreenhouseThing):
                     self.is_open = bool(open_val)
                     if self.auto_mode:
                         self.auto_mode = False
-                        _srv_log(f"Авторежим отключён вручную")
+                        _srv_log("Авторежим отключён вручную")
                 except Exception:
                     errors.append(f"Не удалось преобразовать open: {open_val}")
+
             if "flow_l_per_min" in payload:
                 try:
                     flow = float(payload["flow_l_per_min"])
@@ -224,6 +242,7 @@ class IrrigationValve(GreenhouseThing):
                         self.flow_l_per_min = flow
                 except (ValueError, TypeError):
                     errors.append(f"Некорректный расход: {payload['flow_l_per_min']}")
+
             if errors:
                 return f"{self.name}: ошибка валидации: {'; '.join(errors)}"
             return f"{self.name}: клапан {'открыт' if self.is_open else 'закрыт'}, расход {self.flow_l_per_min} л/мин"
@@ -232,6 +251,7 @@ class IrrigationValve(GreenhouseThing):
             payload = payload or {}
             self._last_command_time = time.time()
             errors = []
+
             if "auto_mode" in payload:
                 try:
                     mode = payload["auto_mode"]
@@ -241,6 +261,7 @@ class IrrigationValve(GreenhouseThing):
                     _srv_log(f"Авторежим {'включён' if self.auto_mode else 'выключен'}")
                 except Exception:
                     errors.append(f"Некорректное auto_mode: {payload['auto_mode']}")
+
             if "moisture_threshold" in payload:
                 try:
                     thr = float(payload["moisture_threshold"])
@@ -250,6 +271,7 @@ class IrrigationValve(GreenhouseThing):
                         self.moisture_threshold = thr
                 except (ValueError, TypeError):
                     errors.append(f"Некорректный порог: {payload['moisture_threshold']}")
+
             if errors:
                 return f"{self.name}: ошибка валидации: {'; '.join(errors)}"
             return f"{self.name}: авторежим = {'вкл' if self.auto_mode else 'выкл'}, порог = {self.moisture_threshold}%"
@@ -258,8 +280,10 @@ class IrrigationValve(GreenhouseThing):
             return super().apply_command(command, payload)
 
 
+# ---------- Координатор ----------
 class GreenhouseCoordinator:
-    def __init__(self, sensors: List[GreenhouseThing], actuators: List[GreenhouseThing], database: "GreenhouseDatabase") -> None:
+    def __init__(self, sensors: List[GreenhouseThing], actuators: List[GreenhouseThing],
+                 database: "GreenhouseDatabase") -> None:
         _srv_log("GreenhouseCoordinator.__init__")
         self._sensors = sensors
         self._actuators = {a.name: a for a in actuators}
@@ -283,6 +307,7 @@ class GreenhouseCoordinator:
         return result
 
 
+# ---------- In‑memory база для истории (ЛР2) ----------
 class GreenhouseDatabase:
     def __init__(self) -> None:
         _srv_log("GreenhouseDatabase.__init__")
@@ -312,16 +337,11 @@ class GreenhouseDatabase:
         return self._sensor_log[-1] if self._sensor_log else None
 
     def command_history(self) -> List[Dict[str, Any]]:
-        return list(self._command_log)
+        return self._command_log
 
 
+# ---------- Логгер в MongoDB (ЛР7) + анализ данных (ЛР8) ----------
 class Logger:
-    """
-    ЛР7: логгер долгосрочного хранения в MongoDB.
-    Содержит подключение к БД и последние записанные значения
-    для исключения дублей.
-    """
-
     def __init__(self, db_name: str, uri: str = "mongodb://localhost:27017/") -> None:
         _srv_log(f"Logger.__init__ -- DB: {db_name}")
         self._last_climate: Optional[Dict[str, Any]] = None
@@ -337,9 +357,10 @@ class Logger:
             self._enabled = False
             self.client = None
             self.db = None
-            _srv_log(f"Logger: MongoDB недоступна ({exc})")
+            _srv_log(f"Logger: MongoDB недоступна ({exc}) — запись отключена")
 
-    def _insert_if_changed(self, collection: str, payload: Dict[str, Any], last_value: Optional[Dict[str, Any]]) -> Optional[Any]:
+    def _insert_if_changed(self, collection: str, payload: Dict[str, Any], last_value: Optional[Dict[str, Any]]) -> \
+    Optional[Any]:
         if payload == last_value:
             _srv_log(f"Logger.{collection}: значение не изменилось, запись пропущена")
             return None
@@ -389,6 +410,52 @@ class Logger:
         if result is not None:
             self._last_valve = payload
         return result
+
+    def get_climate_stats(self) -> Dict[str, Any]:
+        """Возвращает статистику по климату (средняя, макс. температура и влажность)."""
+        if not self._enabled or self.db is None:
+            _srv_log("Logger.get_climate_stats: MongoDB недоступна")
+            return {"avg_temp": None, "max_temp": None, "avg_hum": None, "max_hum": None}
+
+        collection = self.db["ClimateReadings"]
+        cursor = collection.find({})
+        temps = []
+        hums = []
+        for doc in cursor:
+            if doc.get("temperature_c") is not None:
+                temps.append(doc["temperature_c"])
+            if doc.get("humidity_percent") is not None:
+                hums.append(doc["humidity_percent"])
+
+        avg_temp = max_temp = avg_hum = max_hum = None
+        if temps:
+            avg_temp = round(sum(temps) / len(temps), 1)
+            max_temp = round(max(temps), 1)
+        if hums:
+            avg_hum = round(sum(hums) / len(hums), 1)
+            max_hum = round(max(hums), 1)
+
+        return {"avg_temp": avg_temp, "max_temp": max_temp, "avg_hum": avg_hum, "max_hum": max_hum}
+
+    def get_soil_stats(self) -> Dict[str, Any]:
+        """Возвращает статистику по влажности почвы (среднее, минимум)."""
+        if not self._enabled or self.db is None:
+            _srv_log("Logger.get_soil_stats: MongoDB недоступна")
+            return {"avg_moisture": None, "min_moisture": None}
+
+        collection = self.db["SoilReadings"]
+        cursor = collection.find({})
+        moistures = []
+        for doc in cursor:
+            if doc.get("moisture_percent") is not None:
+                moistures.append(doc["moisture_percent"])
+
+        avg_moisture = min_moisture = None
+        if moistures:
+            avg_moisture = round(sum(moistures) / len(moistures), 1)
+            min_moisture = round(min(moistures), 1)
+
+        return {"avg_moisture": avg_moisture, "min_moisture": min_moisture}
 
 
 __all__ = [

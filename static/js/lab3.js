@@ -1,4 +1,3 @@
-// ========== Мониторинг (ЛР3) ==========
 function getClimateData() {
   $.ajax({
     type: "GET",
@@ -50,7 +49,6 @@ function updateAll() {
   getValveData();
 }
 
-// ========== Ручные команды (ЛР4, ЛР5) ==========
 function sendClimateCommand() {
   let temp = $("#climate_temp_set").val();
   let hum = $("#climate_hum_set").val();
@@ -125,7 +123,6 @@ function sendValveFlowCommand() {
   });
 }
 
-// ========== Автоматический режим (ЛР6) ==========
 function toggleAutoMode() {
   let currentAuto = $("#valve_auto_mode").val() === "Включён";
   let newMode = !currentAuto;
@@ -162,7 +159,32 @@ function setThreshold() {
   });
 }
 
+function loadStats() {
+  $.ajax({
+    type: "GET",
+    url: "/stats/climate",
+    dataType: "json",
+    success: function (stats) {
+      $("#avg_temp").text(stats.avg_temp !== null ? stats.avg_temp + " °C" : "нет данных");
+      $("#max_temp").text(stats.max_temp !== null ? stats.max_temp + " °C" : "нет данных");
+      $("#avg_hum").text(stats.avg_hum !== null ? stats.avg_hum + " %" : "нет данных");
+      $("#max_hum").text(stats.max_hum !== null ? stats.max_hum + " %" : "нет данных");
+    }
+  });
+  $.ajax({
+    type: "GET",
+    url: "/stats/soil",
+    dataType: "json",
+    success: function (stats) {
+      $("#avg_moisture").text(stats.avg_moisture !== null ? stats.avg_moisture + " %" : "нет данных");
+      $("#min_moisture").text(stats.min_moisture !== null ? stats.min_moisture + " %" : "нет данных");
+    }
+  });
+}
+
 $(function () {
   updateAll();
   setInterval(updateAll, 1000);
+  loadStats();
+  setInterval(loadStats, 30000);
 });
